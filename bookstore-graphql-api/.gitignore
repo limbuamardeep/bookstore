@@ -1,0 +1,8 @@
+.agents
+.claude
+.cursor
+.devin
+node_modules
+.env
+.bin
+.package-lock.json
