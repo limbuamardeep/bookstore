@@ -1,16 +1,33 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Heart, Share2, ShoppingCart, Check, BookOpen, ChevronRight, Minus, Plus } from 'lucide-react';
+import { Star, Heart, Share2, ShoppingCart, Check, ChevronRight, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { mockBooks, mockReviews } from '@/data/mock';
+import { useQuery } from '@apollo/client/react';
+import { GET_BOOK } from '@/graphql/books';
 
 export default function BookDetails() {
   const { id } = useParams();
-  const book = mockBooks.find(b => b.id === (id || '1')) || mockBooks[0]; // fallback
+  
+  const { data, loading, error } = useQuery(GET_BOOK, {
+    variables: { id },
+    skip: !id
+  });
+
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews'>('description');
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
+
+  if (loading) return <div className="container mx-auto px-4 py-8">Loading book details...</div>;
+  if (error) return <div className="container mx-auto px-4 py-8">Error loading book details: {error.message}</div>;
+  if (!data?.book) return <div className="container mx-auto px-4 py-8">Book not found.</div>;
+
+  const book = data.book;
+  const rating = book.reviews.length > 0 
+    ? (book.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / book.reviews.length).toFixed(1)
+    : 'No ratings';
+
+  const defaultCover = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop";
 
   const handleAddToCart = () => {
     setIsAdded(true);
@@ -25,245 +42,182 @@ export default function BookDetails() {
         <ChevronRight className="h-4 w-4 mx-1" />
         <Link to="/shop" className="hover:text-primary">Shop</Link>
         <ChevronRight className="h-4 w-4 mx-1" />
-        <span className="text-foreground">{book.title}</span>
+        {book.category && (
+          <>
+            <Link to={`/shop?category=${book.category.name}`} className="hover:text-primary">{book.category.name}</Link>
+            <ChevronRight className="h-4 w-4 mx-1" />
+          </>
+        )}
+        <span className="text-foreground truncate max-w-50">{book.title}</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        {/* Gallery / Cover */}
-        <div className="w-full lg:w-1/3 max-w-md mx-auto lg:mx-0">
-          <div className="relative aspect-[2/3] rounded-lg overflow-hidden shadow-2xl bg-muted group">
+      <div className="flex flex-col md:flex-row gap-12 mb-16">
+        {/* Book Cover */}
+        <div className="w-full md:w-1/3 max-w-sm mx-auto md:mx-0">
+          <div className="relative aspect-2/3 rounded-lg overflow-hidden shadow-2xl bg-muted">
             <img 
-              src={book.coverImage} 
-              alt={book.title} 
-              className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-105"
+              src={book.imageUrl || defaultCover} 
+              alt={book.title}
+              className="object-cover w-full h-full"
             />
-            {book.discountPrice && (
-              <Badge className="absolute top-4 left-4 bg-destructive text-white border-transparent px-3 py-1 text-sm shadow-md">Sale</Badge>
+            {book.featured && (
+              <Badge className="absolute top-4 left-4 bg-destructive text-white border-transparent">Featured</Badge>
             )}
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-4 flex items-center justify-center gap-1">
-            <BookOpen className="h-3 w-3" /> Hover to zoom
-          </p>
         </div>
 
-        {/* Product Info */}
-        <div className="flex-1 space-y-6">
-          <div>
-            <h1 className="text-4xl font-serif font-bold text-foreground leading-tight mb-2">{book.title}</h1>
-            <p className="text-xl text-muted-foreground">by <Link to={`/shop?author=${book.author}`} className="text-primary hover:underline">{book.author}</Link></p>
+        {/* Book Info */}
+        <div className="w-full md:w-2/3 flex flex-col">
+          <div className="mb-2">
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-2 leading-tight">
+              {book.title}
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              by <span className="text-primary font-medium">{book.author.name}</span>
+            </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star} 
-                  className={`h-5 w-5 ${star <= Math.round(book.rating) ? 'fill-accent text-accent' : 'text-muted fill-muted'}`} 
-                />
-              ))}
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
+            <div className="flex items-center gap-1">
+              <Star className="h-5 w-5 fill-accent text-accent" />
+              <span className="font-medium text-lg">{rating}</span>
+              <span className="text-muted-foreground ml-1">({book.reviews.length} reviews)</span>
             </div>
-            <span className="text-sm font-medium">{book.rating} Rating</span>
-            <span className="text-sm text-muted-foreground underline cursor-pointer hover:text-primary" onClick={() => setActiveTab('reviews')}>
-              ({book.reviewCount} Reviews)
-            </span>
-          </div>
-
-          <div className="flex items-end gap-3 pb-4 border-b border-border">
-            {book.discountPrice ? (
-              <>
-                <span className="text-3xl font-bold text-foreground">${book.discountPrice.toFixed(2)}</span>
-                <span className="text-lg text-muted-foreground line-through mb-1">${book.price.toFixed(2)}</span>
-                <Badge variant="success" className="mb-2">Save ${(book.price - book.discountPrice).toFixed(2)}</Badge>
-              </>
-            ) : (
-              <span className="text-3xl font-bold text-foreground">${book.price.toFixed(2)}</span>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className={`h-2.5 w-2.5 rounded-full ${book.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm font-medium">{book.stock > 0 ? `In Stock (${book.stock} available)` : 'Out of Stock'}</span>
+            <div className="w-px h-6 bg-border"></div>
+            <div className="text-sm font-medium text-success flex items-center gap-1">
+              <Check className="h-4 w-4" /> In Stock ({book.stock} available)
             </div>
-            
-            {book.format && (
-              <p className="text-sm text-muted-foreground">Format: <span className="font-medium text-foreground">{book.format}</span></p>
-            )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            <div className="flex items-center border border-input rounded-md h-12 w-32">
+          <div className="mb-6">
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-3xl font-bold">${book.price.toFixed(2)}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Free shipping on orders over $50</p>
+          </div>
+
+          <p className="text-muted-foreground mb-8 line-clamp-4">
+            {book.description || "No description available for this book."}
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 mt-auto">
+            {/* Quantity Selector */}
+            <div className="flex items-center border border-input rounded-md h-12 w-32 bg-background">
               <button 
-                className="flex-1 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground h-full rounded-l-md transition-colors"
+                className="flex-1 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                disabled={book.stock === 0}
               >
                 <Minus className="h-4 w-4" />
               </button>
-              <span className="w-10 text-center font-medium">{quantity}</span>
+              <span className="flex-1 text-center font-medium">{quantity}</span>
               <button 
-                className="flex-1 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground h-full rounded-r-md transition-colors"
-                onClick={() => setQuantity(Math.min(book.stock, quantity + 1))}
-                disabled={book.stock === 0}
+                className="flex-1 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setQuantity(quantity + 1)}
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            
+
             <Button 
               size="lg" 
-              className="flex-1 h-12 text-base font-medium"
-              disabled={book.stock === 0}
+              className="flex-1 h-12 text-base font-medium group relative overflow-hidden"
               onClick={handleAddToCart}
             >
-              {isAdded ? (
-                <><Check className="h-5 w-5 mr-2" /> Added to Cart</>
-              ) : (
-                <><ShoppingCart className="h-5 w-5 mr-2" /> Add to Cart</>
-              )}
+              <div className={`absolute inset-0 flex items-center justify-center bg-success text-success-foreground transition-transform duration-300 ${isAdded ? 'translate-y-0' : 'translate-y-full'}`}>
+                <Check className="h-5 w-5 mr-2" /> Added to Cart
+              </div>
+              <div className={`flex items-center justify-center transition-transform duration-300 ${isAdded ? '-translate-y-full' : 'translate-y-0'}`}>
+                <ShoppingCart className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+                Add to Cart
+              </div>
+            </Button>
+
+            <Button size="icon" variant="outline" className="h-12 w-12 shrink-0">
+              <Heart className="h-5 w-5 text-muted-foreground" />
             </Button>
             
-            <Button size="lg" variant="outline" className="h-12 w-12 px-0 flex-shrink-0">
-              <Heart className="h-5 w-5" />
+            <Button size="icon" variant="outline" className="h-12 w-12 shrink-0 hidden sm:flex">
+              <Share2 className="h-5 w-5 text-muted-foreground" />
             </Button>
-            <Button size="lg" variant="outline" className="h-12 w-12 px-0 flex-shrink-0 hidden sm:flex">
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="pt-8 flex gap-4 text-sm text-muted-foreground border-t border-border mt-8">
-            <div className="flex-1 bg-muted/30 p-4 rounded-md text-center">
-              <span className="block font-medium text-foreground mb-1">Free Shipping</span>
-              On orders over $50
-            </div>
-            <div className="flex-1 bg-muted/30 p-4 rounded-md text-center">
-              <span className="block font-medium text-foreground mb-1">Easy Returns</span>
-              Within 30 days
-            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="mt-16">
-        <div className="flex border-b border-border overflow-x-auto">
+        <div className="flex border-b border-border mb-8 overflow-x-auto hide-scrollbar">
           <button 
-            className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === 'description' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`pb-4 px-6 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${activeTab === 'description' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
             onClick={() => setActiveTab('description')}
           >
             Description
           </button>
           <button 
-            className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === 'details' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`pb-4 px-6 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
             onClick={() => setActiveTab('details')}
           >
-            Product Details
+            Book Details
           </button>
           <button 
-            className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === 'reviews' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`pb-4 px-6 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${activeTab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
             onClick={() => setActiveTab('reviews')}
           >
-            Reviews ({book.reviewCount})
+            Reviews ({book.reviews.length})
           </button>
         </div>
 
-        <div className="py-8 min-h-[300px]">
+        <div className="max-w-3xl">
           {activeTab === 'description' && (
-            <div className="prose prose-sm sm:prose-base prose-neutral dark:prose-invert max-w-3xl">
-              <p className="leading-relaxed text-muted-foreground text-lg">{book.description}</p>
+            <div className="prose prose-sm sm:prose-base dark:prose-invert">
+              <p>{book.description || "No full description available."}</p>
             </div>
           )}
 
           {activeTab === 'details' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 max-w-3xl">
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">ISBN</span>
-                <span className="font-medium text-foreground">{book.isbn}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Author</span>
+                <span className="font-medium text-foreground">{book.author.name}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">Publisher</span>
-                <span className="font-medium text-foreground">{book.publisher}</span>
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Category</span>
+                <span className="font-medium text-foreground">{book.category?.name || 'N/A'}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">Publication Date</span>
-                <span className="font-medium text-foreground">{book.publicationDate}</span>
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Publication Year</span>
+                <span className="font-medium text-foreground">{book.publishYear}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">Pages</span>
-                <span className="font-medium text-foreground">{book.pages}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">Language</span>
-                <span className="font-medium text-foreground">{book.language}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">Dimensions</span>
-                <span className="font-medium text-foreground">{book.dimensions}</span>
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">ID</span>
+                <span className="font-medium text-foreground">{book.id}</span>
               </div>
             </div>
           )}
 
           {activeTab === 'reviews' && (
-            <div className="max-w-4xl">
-              <div className="flex flex-col md:flex-row gap-8 mb-10">
-                <div className="bg-muted/30 p-6 rounded-lg text-center min-w-[200px]">
-                  <h3 className="text-4xl font-bold text-foreground mb-2">{book.rating}</h3>
-                  <div className="flex justify-center mb-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className={`h-5 w-5 ${star <= Math.round(book.rating) ? 'fill-accent text-accent' : 'text-muted fill-muted'}`} />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Based on {book.reviewCount} reviews</p>
-                </div>
-                <div className="flex-1 space-y-2">
-                  {[5, 4, 3, 2, 1].map((rating) => {
-                    const percentage = rating === 5 ? 75 : rating === 4 ? 15 : rating === 3 ? 5 : rating === 2 ? 3 : 2;
-                    return (
-                      <div key={rating} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 w-12 text-sm text-muted-foreground">
-                          {rating} <Star className="h-3 w-3" />
-                        </div>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-accent" style={{ width: `${percentage}%` }}></div>
-                        </div>
-                        <div className="w-10 text-right text-sm text-muted-foreground">{percentage}%</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="space-y-8">
-                {mockReviews.map((review) => (
-                  <div key={review.id} className="border-b border-border pb-8">
+            <div className="space-y-8">
+              {book.reviews.length === 0 ? (
+                <p className="text-muted-foreground">No reviews yet for this book.</p>
+              ) : (
+                book.reviews.map((review: any) => (
+                  <div key={review.id} className="border-b border-border pb-6 last:border-0">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
-                          {review.userName.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{review.userName}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(review.date).toLocaleDateString()}</p>
-                        </div>
+                      <div>
+                        <p className="font-medium">{review.user.name}</p>
                       </div>
                       <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className={`h-4 w-4 ${star <= review.rating ? 'fill-accent text-accent' : 'text-muted fill-muted'}`} />
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`h-4 w-4 ${i < review.rating ? 'fill-accent text-accent' : 'fill-muted text-muted'}`} 
+                          />
                         ))}
                       </div>
                     </div>
                     <p className="text-muted-foreground text-sm mt-3">{review.comment}</p>
-                    <div className="mt-4 flex items-center gap-4">
-                      <button className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-                        Helpful ({review.helpfulCount})
-                      </button>
-                      <button className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                        Report
-                      </button>
-                    </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           )}
         </div>

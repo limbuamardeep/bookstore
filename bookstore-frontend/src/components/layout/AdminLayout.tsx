@@ -1,22 +1,34 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Book, ShoppingBag, Users, Settings, LogOut, Menu, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Book, ShoppingBag, Users, Settings, LogOut, Menu, BookOpen, Star, Folder, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
+  const [isDarkMode, setIsDarkMode] = useState(
+    typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false
+  );
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Categories', path: '/admin/categories', icon: Folder },
     { name: 'Books', path: '/admin/books', icon: Book },
+    { name: 'Authors', path: '/admin/authors', icon: Users },
     { name: 'Orders', path: '/admin/orders', icon: ShoppingBag },
+    { name: 'Reviews', path: '/admin/reviews', icon: Star },
     { name: 'Users', path: '/admin/users', icon: Users },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-muted/30 text-foreground transition-colors duration-300">
       
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -28,7 +40,7 @@ export default function AdminLayout() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:flex-shrink-0 flex flex-col",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:shrink-0 flex flex-col",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-16 flex items-center px-6 border-b border-border">
@@ -63,7 +75,14 @@ export default function AdminLayout() {
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border flex flex-col gap-2">
+          <button 
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
           <button className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors">
             <LogOut className="h-5 w-5" />
             Sign Out

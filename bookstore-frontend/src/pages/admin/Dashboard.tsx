@@ -45,7 +45,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Sales Overview</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-end justify-between gap-2 pt-4">
+          <CardContent className="h-75 flex items-end justify-between gap-2 pt-4">
             {/* Very simple mock bar chart using pure CSS */}
             {[40, 70, 45, 90, 65, 85, 120, 95, 110, 80, 130, 100].map((height, i) => (
               <div key={i} className="w-full bg-primary/20 rounded-t-sm hover:bg-primary transition-colors group relative" style={{ height: `${(height/130)*100}%` }}>

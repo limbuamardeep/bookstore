@@ -4,10 +4,24 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Search, Plus, Filter, Edit, Trash2 } from 'lucide-react';
-import { mockBooks } from '@/data/mock';
+import { AddBookForm } from './Form/AddBook.form';
+import { EditBookDialog } from './Form/EditBook.dialog';
+import { DeleteBookDialog } from './Form/DeleteBook.dialog';
+import { useQuery } from '@apollo/client/react';
+import { GET_BOOKS, type BooksQuery } from '@/graphql/books';
 
 export default function Books() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddingBook, setIsAddingBook] = useState(false);
+  const [isEditingBook, setIsEditingBook] = useState<BooksQuery['books'][number] | null>(null);
+  const [isDeletingBook, setIsDeletingBook] = useState<BooksQuery['books'][number] | null>(null);
+  const { data, loading, error, refetch } = useQuery<BooksQuery>(GET_BOOKS);
+  if (isAddingBook) {
+    return <AddBookForm onCancel={() => setIsAddingBook(false)} />;
+  }
+  if (loading) return <div className="container mx-auto px-4 py-8">Loading books...</div>;
+  if (error) return <div className="container mx-auto px-4 py-8" role="alert">Could not load books: {error.message}</div>;
+  const bookCount = data?.books.length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -16,7 +30,7 @@ export default function Books() {
           <h1 className="text-2xl font-bold tracking-tight">Books Management</h1>
           <p className="text-sm text-muted-foreground">Manage your store's inventory.</p>
         </div>
-        <Button>
+        <Button onClick={() => setIsAddingBook(true)}>
           <Plus className="h-4 w-4 mr-2" /> Add New Book
         </Button>
       </div>
@@ -53,18 +67,18 @@ export default function Books() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {mockBooks.map(book => (
+                {data?.books.map(book => (
                   <tr key={book.id} className="hover:bg-muted/20 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <img src={book.coverImage} alt={book.title} className="h-12 w-8 object-cover rounded shadow-sm" />
+                        <img src={book?.imageUrl||""} alt={book.title} className="h-12 w-8 object-cover rounded shadow-sm" />
                         <div>
                           <div className="font-medium text-foreground">{book.title}</div>
-                          <div className="text-xs text-muted-foreground">{book.author}</div>
+                          <div className="text-xs text-muted-foreground">{book.author.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{book.category}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{book.category?.name ?? 'Uncategorized'}</td>
                     <td className="px-6 py-4 font-medium">${book.price.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={book.stock < 10 ? (book.stock === 0 ? "text-destructive font-medium" : "text-warning font-medium") : ""}>
@@ -72,16 +86,28 @@ export default function Books() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={book.status === 'Published' ? 'success' : (book.status === 'Out of Stock' ? 'destructive' : 'secondary')}>
-                        {book.status}
+                      <Badge variant={book.stock === 0 ? 'destructive' : 'success'}>
+                        {book.stock === 0 ? 'Out of Stock' : 'Published'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-primary/10">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${book.title}`}
+                          title="Edit book"
+                          onClick={() => setIsEditingBook(book)}
+                          className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-primary/10"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10">
+                        <button
+                          type="button"
+                          aria-label={`Delete ${book.title}`}
+                          title="Delete book"
+                          onClick={() => setIsDeletingBook(book)}
+                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -93,7 +119,7 @@ export default function Books() {
           </div>
           
           <div className="p-4 border-t border-border flex items-center justify-between text-sm text-muted-foreground">
-            <div>Showing 1 to {mockBooks.length} of 124 entries</div>
+            <div>Showing {bookCount === 0 ? 0 : 1} to {bookCount} of {bookCount} entries</div>
             <div className="flex gap-1">
               <Button variant="outline" size="sm" disabled>Prev</Button>
               <Button variant="outline" size="sm">Next</Button>
@@ -101,6 +127,20 @@ export default function Books() {
           </div>
         </CardContent>
       </Card>
+      {isEditingBook && (
+        <EditBookDialog
+          book={isEditingBook}
+          onClose={() => setIsEditingBook(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
+      {isDeletingBook && (
+        <DeleteBookDialog
+          book={isDeletingBook}
+          onClose={() => setIsDeletingBook(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }

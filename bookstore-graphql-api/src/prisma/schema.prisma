@@ -1,16 +1,114 @@
 //use prisma-8
 
-model Author{
-    id Int @id @default(autoincrement())
-    name String
-    books Book[]
+enum UserRole {
+  CUSTOMER
+  ADMIN
 }
 
-model Book{
-    id Int @id @default(autoincrement())
-    title String
-    price Float
-    publishYear Int
-    authorId Int
-    author Author @relation(fields: [authorId], references: [id])
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+model Author {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  books Book[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  books Book[]
+}
+
+model Book {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  price       Decimal
+  stock       Int      @default(0)
+  imageUrl    String?
+  publishYear Int
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   temporal.updatedAt()
+
+  authorId   Int
+  categoryId Int?
+  author     Author    @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  reviews    Review[]
+  orderItems OrderItem[]
+
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+  updatedAt    temporal.updatedAt()
+
+  orders  Order[]
+  reviews Review[]
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  total     Decimal
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt temporal.updatedAt()
+
+  userId Int
+  user   User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items  OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id       Int     @id @default(autoincrement())
+  quantity Int     @default(1)
+  price    Decimal
+
+  orderId Int
+  bookId  Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, bookId])
+  @@index([bookId])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAt()
+
+  userId Int
+  bookId Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
 }

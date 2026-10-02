@@ -12,7 +12,10 @@ import Signup from '@/pages/auth/Signup'
 import ForgotPassword from '@/pages/auth/ForgotPassword'
 import Dashboard from '@/pages/admin/Dashboard'
 import Books from '@/pages/admin/Books'
+import Authors from '@/pages/admin/Authors'
+import AdminCategories from '@/pages/admin/Categories'
 import Orders from '@/pages/admin/Orders'
+import Reviews from '@/pages/admin/Reviews'
 import Users from '@/pages/admin/Users'
 import Settings from '@/pages/admin/Settings'
 import NotFound from '@/pages/public/NotFound'
@@ -38,7 +41,10 @@ function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="books" element={<Books />} />
+          <Route path="authors" element={<Authors />} />
+          <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="reviews" element={<Reviews />} />
           <Route path="users" element={<Users />} />
           <Route path="settings" element={<Settings />} />
         </Route>
