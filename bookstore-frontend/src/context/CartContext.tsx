@@ -78,7 +78,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Context hooks are intentionally exported with their provider.
 // eslint-disable-next-line react-refresh/only-export-components
 export function useCart() {
   const context = useContext(CartContext);

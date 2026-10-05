@@ -15,7 +15,6 @@ export default function Home() {
   const featuredBooks = booksData?.books.filter(b => b.featured).slice(0, 4) || [];
   const displayCategories = categoriesData?.categories.slice(0, 4) || [];
   
-  // Fallback covers if no imageUrl
   const defaultCover1 = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop";
   const defaultCover2 = "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop";
 
@@ -90,7 +89,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Books */}
       <section className="container mx-auto px-4">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -144,7 +142,7 @@ function BookCard({ book }: { book: BooksQuery['books'][number] }) {
     : 'No ratings';
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to book details
+    e.preventDefault();
     addToCart(book, 1);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
