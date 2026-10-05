@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
-export const buttonVariants = {
+const buttonVariants = {
   default: 'bg-primary text-primary-foreground hover:bg-primary/90',
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90',
@@ -13,7 +13,7 @@ export const buttonVariants = {
   link: 'text-primary underline-offset-4 hover:underline'
 };
 
-export const buttonSizes = {
+const buttonSizes = {
   default: 'h-10 px-4 py-2',
   sm: 'h-9 rounded-md px-3 text-xs',
   lg: 'h-11 rounded-md px-8',

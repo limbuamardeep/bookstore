@@ -4,12 +4,14 @@ import { Star, Heart, Share2, ShoppingCart, Check, ChevronRight, Minus, Plus } f
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useQuery } from '@apollo/client/react';
-import { GET_BOOK } from '@/graphql/books';
+import { GET_BOOK, type BookQuery } from '@/graphql/books';
+import { useCart } from '@/context/CartContext';
 
 export default function BookDetails() {
   const { id } = useParams();
+  const { addToCart } = useCart();
   
-  const { data, loading, error } = useQuery(GET_BOOK, {
+  const { data, loading, error } = useQuery<BookQuery>(GET_BOOK, {
     variables: { id },
     skip: !id
   });
@@ -23,13 +25,17 @@ export default function BookDetails() {
   if (!data?.book) return <div className="container mx-auto px-4 py-8">Book not found.</div>;
 
   const book = data.book;
+  
+  type ReviewType = NonNullable<BookQuery['book']>['reviews'][number];
+
   const rating = book.reviews.length > 0 
-    ? (book.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / book.reviews.length).toFixed(1)
+    ? (book.reviews.reduce((sum: number, r: ReviewType) => sum + r.rating, 0) / book.reviews.length).toFixed(1)
     : 'No ratings';
 
   const defaultCover = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop";
 
   const handleAddToCart = () => {
+    addToCart(book, quantity);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
@@ -52,7 +58,6 @@ export default function BookDetails() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-12 mb-16">
-        {/* Book Cover */}
         <div className="w-full md:w-1/3 max-w-sm mx-auto md:mx-0">
           <div className="relative aspect-2/3 rounded-lg overflow-hidden shadow-2xl bg-muted">
             <img 
@@ -101,7 +106,6 @@ export default function BookDetails() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-auto">
-            {/* Quantity Selector */}
             <div className="flex items-center border border-input rounded-md h-12 w-32 bg-background">
               <button 
                 className="flex-1 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -143,7 +147,6 @@ export default function BookDetails() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="mt-16">
         <div className="flex border-b border-border mb-8 overflow-x-auto hide-scrollbar">
           <button 
@@ -199,7 +202,7 @@ export default function BookDetails() {
               {book.reviews.length === 0 ? (
                 <p className="text-muted-foreground">No reviews yet for this book.</p>
               ) : (
-                book.reviews.map((review: any) => (
+                book.reviews.map((review: ReviewType) => (
                   <div key={review.id} className="border-b border-border pb-6 last:border-0">
                     <div className="flex justify-between items-start mb-2">
                       <div>

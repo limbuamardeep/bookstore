@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Search, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,11 +39,6 @@ export function Combobox({ options, value, onChange, placeholder = "Select...", 
   const filteredOptions = options.filter(opt => 
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Reset active index when search changes or dropdown opens
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [searchTerm, isOpen]);
 
   // Scroll active item into view
   useEffect(() => {
@@ -87,6 +83,7 @@ export function Combobox({ options, value, onChange, placeholder = "Select...", 
         type="button"
         disabled={disabled}
         onClick={() => {
+          setActiveIndex(0);
           setIsOpen(!isOpen);
           setSearchTerm('');
         }}
@@ -113,7 +110,10 @@ export function Combobox({ options, value, onChange, placeholder = "Select...", 
               className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Search..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setActiveIndex(0);
+              }}
               onKeyDown={handleKeyDown}
               autoFocus
             />

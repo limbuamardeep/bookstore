@@ -1,15 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Book, ShoppingBag, Users, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { mockOrders } from '@/data/mock';
 import { Badge } from '@/components/ui/Badge';
+import { useQuery } from '@apollo/client/react';
+import { GET_BOOKS, type BooksQuery } from '@/graphql/books';
+import { GET_ORDERS, type OrdersQuery } from '@/graphql/order';
+import { GET_USERS, type UsersQuery } from '@/graphql/user';
 
 export default function Dashboard() {
+  const { data: booksData } = useQuery<BooksQuery>(GET_BOOKS);
+  const { data: ordersData } = useQuery<OrdersQuery>(GET_ORDERS);
+  const { data: usersData } = useQuery<UsersQuery>(GET_USERS);
+
+  const totalBooks = booksData?.books.length || 0;
+  const totalOrders = ordersData?.orders.length || 0;
+  const totalUsers = usersData?.users.length || 0;
+  const totalRevenue = ordersData?.orders.reduce((sum, order) => sum + order.total, 0) || 0;
+
   const stats = [
-    { name: 'Total Revenue', value: '$12,426', change: '+14%', trend: 'up', icon: DollarSign },
-    { name: 'Total Orders', value: '342', change: '+8%', trend: 'up', icon: ShoppingBag },
-    { name: 'Total Books', value: '1,204', change: '-2%', trend: 'down', icon: Book },
-    { name: 'Active Users', value: '8,234', change: '+24%', trend: 'up', icon: Users },
+    { name: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, change: '+14%', trend: 'up', icon: DollarSign },
+    { name: 'Total Orders', value: totalOrders.toString(), change: '+8%', trend: 'up', icon: ShoppingBag },
+    { name: 'Total Books', value: totalBooks.toString(), change: '-2%', trend: 'down', icon: Book },
+    { name: 'Active Users', value: totalUsers.toString(), change: '+24%', trend: 'up', icon: Users },
   ];
+
+  const recentOrders = ordersData?.orders.slice(-5).reverse() || [];
 
   return (
     <div className="space-y-6">
@@ -64,20 +78,24 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {mockOrders.slice(0, 5).map(order => (
-                <div key={order.id} className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium leading-none">{order.customerName}</span>
-                    <span className="text-xs text-muted-foreground">{order.id}</span>
+              {recentOrders.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">No orders yet.</div>
+              ) : (
+                recentOrders.map(order => (
+                  <div key={order.id} className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium leading-none">User #{order.userId}</span>
+                      <span className="text-xs text-muted-foreground">Order #{order.id}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-sm font-bold">${order.total.toFixed(2)}</span>
+                      <Badge variant={order.status === 'PAID' ? 'success' : order.status === 'PENDING' ? 'warning' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                        {order.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-sm font-bold">${order.amount.toFixed(2)}</span>
-                    <Badge variant={order.paymentStatus === 'Paid' ? 'success' : 'warning'} className="text-[10px] px-1.5 py-0">
-                      {order.paymentStatus}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

@@ -4,17 +4,33 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { AddReviewForm } from './Form/AddReview.form';
-import { GET_REVIEWS, type ReviewsQuery } from '@/graphql/review';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { GET_REVIEWS, DELETE_REVIEW, type ReviewsQuery } from '@/graphql/review';
 
 export default function Reviews() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [isAddingReview, setIsAddingReview] = useState(false);
   
-  const { data, loading, error } = useQuery<ReviewsQuery>(GET_REVIEWS);
+  const { data, loading, error, refetch } = useQuery<ReviewsQuery>(GET_REVIEWS);
+  const [deleteReview] = useMutation(DELETE_REVIEW, {
+    onCompleted: () => refetch(),
+  });
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this review?')) {
+      deleteReview({ variables: { id } });
+    }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   if (isAddingReview) {
-    return <AddReviewForm onCancel={() => setIsAddingReview(false)} onSuccess={() => setIsAddingReview(false)} />;
+    return <AddReviewForm onCancel={() => setIsAddingReview(false)} onSuccess={() => { setIsAddingReview(false); refetch(); }} />;
   }
 
   const filteredReviews = data?.reviews.filter(r => 
@@ -22,6 +38,10 @@ export default function Reviews() {
     r.bookId.toString().includes(searchTerm) || 
     r.userId.toString().includes(searchTerm)
   ) || [];
+
+  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedReviews = filteredReviews.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -43,7 +63,7 @@ export default function Reviews() {
               placeholder="Search reviews by ID..." 
               className="pl-9 bg-background"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
             />
           </div>
         </div>
@@ -67,26 +87,26 @@ export default function Reviews() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredReviews.length === 0 ? (
+                  {paginatedReviews.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                         No reviews found.
                       </td>
                     </tr>
                   ) : (
-                    filteredReviews.map(review => (
+                    paginatedReviews.map(review => (
                       <tr key={review.id} className="hover:bg-muted/20 transition-colors group">
                         <td className="px-6 py-4">{review.id}</td>
                         <td className="px-6 py-4 text-muted-foreground">{review.bookId}</td>
                         <td className="px-6 py-4 text-muted-foreground">{review.userId}</td>
                         <td className="px-6 py-4 font-medium">{review.rating} / 5</td>
-                        <td className="px-6 py-4 text-muted-foreground truncate max-w-50">{review.comment || '-'}</td>
+                        <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]">{review.comment || '-'}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-primary/10">
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10">
+                            <button onClick={() => handleDelete(review.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -98,6 +118,33 @@ export default function Reviews() {
               </table>
             </div>
           )}
+          
+          <div className="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div>
+              Showing {filteredReviews.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredReviews.length)} of {filteredReviews.length} entries
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Prev
+              </Button>
+              <div className="flex items-center px-2">
+                Page {currentPage} of {totalPages || 1}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

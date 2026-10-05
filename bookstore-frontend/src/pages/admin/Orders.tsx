@@ -5,22 +5,42 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { AddOrderForm } from './Form/AddOrder.form';
-import { GET_ORDERS, type OrdersQuery } from '@/graphql/order';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { GET_ORDERS, DELETE_ORDER, type OrdersQuery } from '@/graphql/order';
 
 export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   
-  const { data, loading, error } = useQuery<OrdersQuery>(GET_ORDERS);
+  const { data, loading, error, refetch } = useQuery<OrdersQuery>(GET_ORDERS);
+  const [deleteOrder] = useMutation(DELETE_ORDER, {
+    onCompleted: () => refetch(),
+  });
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this order?')) {
+      deleteOrder({ variables: { id } });
+    }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   if (isAddingOrder) {
-    return <AddOrderForm onCancel={() => setIsAddingOrder(false)} onSuccess={() => setIsAddingOrder(false)} />;
+    return <AddOrderForm onCancel={() => setIsAddingOrder(false)} onSuccess={() => { setIsAddingOrder(false); refetch(); }} />;
   }
 
   const filteredOrders = data?.orders.filter(o => 
     o.id.toString().includes(searchTerm) || o.userId.toString().includes(searchTerm)
   ) || [];
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -42,7 +62,7 @@ export default function Orders() {
               placeholder="Search by order ID or user ID..." 
               className="pl-9 bg-background"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
             />
           </div>
         </div>
@@ -65,14 +85,14 @@ export default function Orders() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredOrders.length === 0 ? (
+                  {paginatedOrders.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
                         No orders found.
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.map(order => (
+                    paginatedOrders.map(order => (
                       <tr key={order.id} className="hover:bg-muted/20 transition-colors group">
                         <td className="px-6 py-4">{order.id}</td>
                         <td className="px-6 py-4 text-muted-foreground">{order.userId}</td>
@@ -87,7 +107,7 @@ export default function Orders() {
                             <button className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-primary/10">
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10">
+                            <button onClick={() => handleDelete(order.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -99,6 +119,33 @@ export default function Orders() {
               </table>
             </div>
           )}
+          
+          <div className="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div>
+              Showing {filteredOrders.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOrders.length)} of {filteredOrders.length} entries
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Prev
+              </Button>
+              <div className="flex items-center px-2">
+                Page {currentPage} of {totalPages || 1}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -30,3 +30,21 @@ export const ADD_ORDER = gql`
         }
     }
 `;
+
+export const DELETE_ORDER = gql`
+    mutation DeleteOrder($id: ID!) {
+        deleteOrder(id: $id)
+    }
+`;
+
+export const ADD_ORDER_ITEM = gql`
+    mutation AddOrderItem($orderId: Int!, $bookId: Int!, $quantity: Int!, $price: Float!) {
+        addOrderItem(orderId: $orderId, bookId: $bookId, quantity: $quantity, price: $price) {
+            id
+            orderId
+            bookId
+            quantity
+            price
+        }
+    }
+`;

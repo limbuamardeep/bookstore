@@ -18,6 +18,27 @@ export interface BooksQuery {
     }[];
 }
 
+export interface BookQuery {
+    book: {
+        id: string;
+        title: string;
+        price: number;
+        stock: number;
+        imageUrl: string | null;
+        featured: boolean;
+        publishYear: number;
+        description: string | null;
+        author: { name: string };
+        category: { name: string } | null;
+        reviews: {
+            id: string;
+            rating: number;
+            comment: string | null;
+            user: { name: string };
+        }[];
+    } | null;
+}
+
 export const GET_BOOKS = gql`
     query GetBooks {
         books {

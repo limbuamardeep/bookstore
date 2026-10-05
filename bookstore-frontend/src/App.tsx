@@ -7,6 +7,8 @@ import BookDetails from '@/pages/public/BookDetails'
 import About from '@/pages/public/About'
 import Categories from '@/pages/public/Categories'
 import Cart from '@/pages/public/Cart'
+import Checkout from '@/pages/public/Checkout'
+import CheckoutSuccess from '@/pages/public/CheckoutSuccess'
 import Login from '@/pages/auth/Login'
 import Signup from '@/pages/auth/Signup'
 import ForgotPassword from '@/pages/auth/ForgotPassword'
@@ -31,6 +33,8 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
         </Route>
 
         <Route path="/login" element={<Login />} />

@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { BookOpen, Search, ShoppingCart, User, Menu, X, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useCart } from '@/context/CartContext';
 
 export default function PublicLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const cartCount = 3;
+  const { totalItems } = useCart();
+  const cartCount = totalItems;
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
