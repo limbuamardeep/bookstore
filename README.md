@@ -35,24 +35,24 @@ Here is a step-by-step visual representation of what happens when a user clicks 
 sequenceDiagram
     autonumber
     actor User
-    participant Frontend as React (Frontend)
-    participant Apollo as Apollo Client
-    participant Server as GraphQL Server
-    participant Prisma as Prisma ORM
-    participant DB as PostgreSQL DB
+    participant Frontend as "React (Frontend)"
+    participant Apollo as "Apollo Client"
+    participant Server as "GraphQL Server"
+    participant Prisma as "Prisma ORM"
+    participant DB as "PostgreSQL DB"
 
     User->>Frontend: Clicks on "View Book Details"
     Frontend->>Apollo: Request data (Title, Author, Price)
     Apollo->>Server: Send GraphQL Query over HTTP
     
-    Note over Server,Prisma: Server receives the specific request<br/>and asks Prisma to fetch it.
+    Note over Server,Prisma: Server receives the specific request and asks Prisma to fetch it.
     
     Server->>Prisma: Call prisma.book.findUnique({ id: 1 })
     Prisma->>DB: Execute translated SQL Query
     DB-->>Prisma: Return raw database rows
     Prisma-->>Server: Return formatted TypeScript object
     
-    Note over Server,Apollo: Server filters the object to match<br/>exactly what GraphQL requested.
+    Note over Apollo,Server: Server filters the object to match exactly what GraphQL requested.
     
     Server-->>Apollo: Return JSON payload
     Apollo-->>Frontend: Update application state
